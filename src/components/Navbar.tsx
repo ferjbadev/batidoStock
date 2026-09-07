@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import './Navbar.css'
 
 const links = [
   { etiqueta: 'Inicio', href: '#inicio' },
@@ -10,36 +9,37 @@ function Navbar() {
   const [abierto, setAbierto] = useState(false)
 
   return (
-    <nav className="navbar">
-      <div className="navbar__barra">
-        <span className="navbar__brand">BatidoStock</span>
+    <header className="navbar sticky top-0 z-10 flex-col items-stretch bg-base-100 shadow-sm md:flex-row md:items-center">
+      <div className="flex w-full items-center justify-between md:w-auto md:flex-1">
+        <a className="btn btn-ghost text-xl text-success" href="#inicio">
+          BatidoStock
+        </a>
         <button
           type="button"
-          className="navbar__toggle"
+          className="btn btn-square btn-ghost md:hidden"
           aria-expanded={abierto}
           aria-controls="navbar-menu"
           aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
           onClick={() => setAbierto((actual) => !actual)}
         >
-          <span className="navbar__icono" aria-hidden="true">
+          <span aria-hidden="true" className="text-xl">
             {abierto ? '✕' : '☰'}
           </span>
         </button>
       </div>
 
-      <ul
-        id="navbar-menu"
-        className={`navbar__links ${abierto ? 'navbar__links--abierto' : ''}`}
-      >
-        {links.map((link) => (
-          <li key={link.href}>
-            <a href={link.href} onClick={() => setAbierto(false)}>
-              {link.etiqueta}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+      <nav className={abierto ? 'block w-full md:w-auto' : 'hidden md:block'}>
+        <ul id="navbar-menu" className="menu w-full menu-vertical md:menu-horizontal">
+          {links.map((link) => (
+            <li key={link.href}>
+              <a href={link.href} onClick={() => setAbierto(false)}>
+                {link.etiqueta}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </header>
   )
 }
 
