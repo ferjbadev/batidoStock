@@ -5,9 +5,12 @@ body,
   margin: 0;
 }
 
+body {
+  font-family: system-ui, sans-serif;
+  background: #f7faf8;
+}
+
 #root {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: system-ui, sans-serif;
+  flex-direction: column;
 }
