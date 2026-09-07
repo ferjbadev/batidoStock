@@ -1,0 +1,92 @@
+.inventario {
+  width: min(60rem, 100%);
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.inventario__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.inventario__header h2 {
+  margin: 0;
+  color: #14532d;
+}
+
+.inventario__resumen {
+  display: flex;
+  gap: 1rem;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.inventario__alerta {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.inventario__tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+}
+
+.inventario__tabla th,
+.inventario__tabla td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eef2ef;
+}
+
+.inventario__tabla th {
+  background: #f1f7f3;
+  color: #14532d;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.etiqueta {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.etiqueta--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.etiqueta--bajo {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.inventario__acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inventario__acciones button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #cbd5d0;
+  border-radius: 0.5rem;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.inventario__acciones button:hover {
+  background: #f1f7f3;
+}
