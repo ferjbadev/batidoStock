@@ -7,8 +7,8 @@ function Hero() {
       <p className="hero__subtitle">
         Controla el stock de tus batidos en un solo lugar.
       </p>
-      <a className="hero__cta" href="#productos">
-        Ver productos
+      <a className="hero__cta" href="#stock">
+        Ver inventario
       </a>
     </section>
   )
