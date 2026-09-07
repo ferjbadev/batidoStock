@@ -1,14 +1,7 @@
 import { useState } from 'react'
+import type { NuevoProducto, Producto } from '../types'
+import FormularioProducto from './FormularioProducto'
 import './Inventario.css'
-
-type Producto = {
-  id: number
-  nombre: string
-  categoria: 'Batido' | 'Jugo' | 'Insumo'
-  stock: number
-  minimo: number
-  precio: number
-}
 
 const productosIniciales: Producto[] = [
   { id: 1, nombre: 'Batido de fresa', categoria: 'Batido', stock: 12, minimo: 5, precio: 3.5 },
@@ -19,6 +12,13 @@ const productosIniciales: Producto[] = [
 
 function Inventario() {
   const [productos, setProductos] = useState<Producto[]>(productosIniciales)
+
+  const agregarProducto = (nuevo: NuevoProducto) => {
+    setProductos((actuales) => [
+      ...actuales,
+      { ...nuevo, id: Math.max(0, ...actuales.map((producto) => producto.id)) + 1 },
+    ])
+  }
 
   const ajustarStock = (id: number, delta: number) => {
     setProductos((actuales) =>
@@ -48,6 +48,8 @@ function Inventario() {
           </span>
         </div>
       </header>
+
+      <FormularioProducto onAgregar={agregarProducto} />
 
       <table className="inventario__tabla">
         <thead>
