@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PrecioDolar from './PrecioDolar'
 
 const links = [
   { etiqueta: 'Inicio', href: '#inicio' },
@@ -14,18 +15,21 @@ function Navbar() {
         <a className="btn btn-ghost text-xl text-success" href="#inicio">
           BatidoStock
         </a>
-        <button
-          type="button"
-          className="btn btn-square btn-ghost md:hidden"
-          aria-expanded={abierto}
-          aria-controls="navbar-menu"
-          aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
-          onClick={() => setAbierto((actual) => !actual)}
-        >
-          <span aria-hidden="true" className="text-xl">
-            {abierto ? '✕' : '☰'}
-          </span>
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <PrecioDolar />
+          <button
+            type="button"
+            className="btn btn-square btn-ghost md:hidden"
+            aria-expanded={abierto}
+            aria-controls="navbar-menu"
+            aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
+            onClick={() => setAbierto((actual) => !actual)}
+          >
+            <span aria-hidden="true" className="text-xl">
+              {abierto ? '✕' : '☰'}
+            </span>
+          </button>
+        </div>
       </div>
 
       <nav className={abierto ? 'block w-full md:w-auto' : 'hidden md:block'}>
