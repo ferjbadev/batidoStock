@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface MenuItem {
@@ -17,10 +17,23 @@ export const SidebarMobile = ({ activeTab, setActiveTab }: SidebarMobileProps) =
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const currentDate = new Date().toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'long',
-  });
+  const [tasaBcv, setTasaBcv] = useState<number | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch('https://ve.dolarapi.com/v1/dolares/oficial', { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error('Respuesta inválida del BCV');
+        return res.json();
+      })
+      .then((data: { promedio?: number }) => {
+        if (typeof data.promedio === 'number') setTasaBcv(data.promedio);
+      })
+      .catch(() => setTasaBcv(null));
+
+    return () => controller.abort();
+  }, []);
 
   const menuItems: MenuItem[] = [
     {
@@ -105,9 +118,17 @@ export const SidebarMobile = ({ activeTab, setActiveTab }: SidebarMobileProps) =
           </div>
         </div>
 
-        {/* Fecha */}
-        <div className="w-auto px-3 h-8 rounded-full bg-white/20 text-white font-semibold text-xs flex items-center justify-center border border-white/30 capitalize">
-          {currentDate}
+        {/* Tasa de cambio BCV */}
+        <div className="w-auto px-3 h-8 rounded-full bg-white/20 text-white font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/30">
+          <span>$1</span>
+          <svg className="w-3.5 h-3.5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-3-3m3 3l-3 3M16 17H4m0 0l3 3m-3-3l3-3" />
+          </svg>
+          <span>
+            {tasaBcv !== null
+              ? `Bs. ${tasaBcv.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : 'Bs. --'}
+          </span>
         </div>
       </header>
 
