@@ -4,6 +4,7 @@ import { SidebarMobile } from './components/navbar'
 import { ResumenSection } from './components/ResumenSection'
 import { InventarioSection } from './components/InventarioSection'
 import { VentasSection } from './components/VentasSection'
+import { ProductosSection } from './components/ProductosSection'
 
 function App() {
   // Estado para controlar qué sección se ve ('resumen', 'inventario' o 'ventas')
@@ -16,6 +17,7 @@ function App() {
       
       <main className="bg-[#fbf9f5] min-h-screen">
         {activeTab === 'resumen' && <ResumenSection />}
+        {activeTab === 'productos' && <ProductosSection />}
         {activeTab === 'inventario' && <InventarioSection />}
         {activeTab === 'ventas' && <VentasSection />}
       </main>

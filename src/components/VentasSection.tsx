@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase, type Venta } from '../lib/supabase';
+import {
+    supabase,
+    type AdvertenciaStock,
+    type Producto,
+    type ResultadoVenta,
+    type Venta,
+} from '../lib/supabase';
 
 const formatMoney = (amount: number) =>
     `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -17,45 +23,59 @@ const formatDate = (isoDate: string) =>
 
 export const VentasSection = () => {
     const [sales, setSales] = useState<Venta[]>([]);
+    const [productos, setProductos] = useState<Producto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [advertencias, setAdvertencias] = useState<AdvertenciaStock[]>([]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [productoId, setProductoId] = useState('');
     const [productName, setProductName] = useState('');
     const [quantity, setQuantity] = useState('');
     const [price, setPrice] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        const loadSales = async () => {
-            const { data, error } = await supabase
-                .from('ventas')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(50);
+        const loadData = async () => {
+            const [ventasRes, productosRes] = await Promise.all([
+                supabase.from('ventas').select('*').order('created_at', { ascending: false }).limit(50),
+                supabase.from('productos').select('*').order('nombre'),
+            ]);
 
-            if (error) setError('No se pudieron cargar las ventas.');
-            else setSales(data);
+            if (ventasRes.error || productosRes.error) {
+                setError('No se pudieron cargar las ventas.');
+            } else {
+                setSales(ventasRes.data);
+                setProductos(productosRes.data);
+            }
             setIsLoading(false);
         };
 
-        loadSales();
+        loadData();
     }, []);
+
+    // Al elegir un batido se precarga su precio, pero sigue siendo editable.
+    const handleSelectProducto = (id: string) => {
+        setProductoId(id);
+        const producto = productos.find((p) => p.id === id);
+        if (producto) setPrice(String(Number(producto.precio)));
+    };
 
     const handleAddSale = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!productName.trim() || !quantity || !price) return;
+        if (!quantity || !price) return;
+        if (!productoId && !productName.trim()) return;
 
         setIsSaving(true);
-        const { data, error } = await supabase
-            .from('ventas')
-            .insert({
-                producto: productName.trim(),
-                cantidad: Number(quantity),
-                precio_unitario: Number(price),
-            })
-            .select()
-            .single();
+        setAdvertencias([]);
+
+        // Una sola llamada: registra la venta y descuenta el inventario en la misma transacción.
+        const { data, error } = await supabase.rpc('registrar_venta', {
+            p_cantidad: Number(quantity),
+            p_producto_id: productoId || null,
+            p_producto_nombre: productoId ? null : productName.trim(),
+            p_precio_unitario: Number(price),
+        });
         setIsSaving(false);
 
         if (error) {
@@ -63,7 +83,10 @@ export const VentasSection = () => {
             return;
         }
 
-        setSales((prev) => [data, ...prev]);
+        const resultado = data as ResultadoVenta;
+        setSales((prev) => [resultado.venta, ...prev]);
+        setAdvertencias(resultado.advertencias);
+        setProductoId('');
         setProductName('');
         setQuantity('');
         setPrice('');
@@ -110,6 +133,20 @@ export const VentasSection = () => {
                 {error && (
                     <div className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-100 rounded-xl px-3.5 py-2.5">
                         {error}
+                    </div>
+                )}
+
+                {advertencias.length > 0 && (
+                    <div className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-2.5 space-y-1">
+                        <p className="font-bold">Venta registrada, pero el inventario no alcanzaba:</p>
+                        <ul className="list-disc list-inside space-y-0.5">
+                            {advertencias.map((aviso) => (
+                                <li key={aviso.ingrediente}>
+                                    <span className="font-semibold">{aviso.ingrediente}</span>: faltaron{' '}
+                                    {aviso.faltante} {aviso.faltante === 1 ? 'unidad' : 'unidades'} (quedó en 0)
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 )}
 
@@ -219,17 +256,43 @@ export const VentasSection = () => {
                             <form onSubmit={handleAddSale} className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-medium text-stone-600 mb-1">
-                                        Nombre del producto
+                                        ¿Qué vendiste?
                                     </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="Ej. Mango tropical"
-                                        value={productName}
-                                        onChange={(e) => setProductName(e.target.value)}
-                                        className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-[#1e6044] text-stone-800 placeholder-stone-400"
-                                    />
+                                    <select
+                                        value={productoId}
+                                        onChange={(e) => handleSelectProducto(e.target.value)}
+                                        className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-[#1e6044] text-stone-800 cursor-pointer"
+                                    >
+                                        <option value="">Otro (no descuenta inventario)</option>
+                                        {productos.map((producto) => (
+                                            <option key={producto.id} value={producto.id}>
+                                                {producto.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {productos.length === 0 && (
+                                        <p className="text-[11px] text-amber-700 mt-1.5">
+                                            Crea tus batidos en la sección "Batidos" para que el inventario se
+                                            descuente automáticamente.
+                                        </p>
+                                    )}
                                 </div>
+
+                                {!productoId && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-stone-600 mb-1">
+                                            Nombre del producto
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Ej. Mango tropical"
+                                            value={productName}
+                                            onChange={(e) => setProductName(e.target.value)}
+                                            className="w-full px-3.5 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-[#1e6044] text-stone-800 placeholder-stone-400"
+                                        />
+                                    </div>
+                                )}
 
                                 <div>
                                     <label className="block text-xs font-medium text-stone-600 mb-1">
@@ -248,7 +311,7 @@ export const VentasSection = () => {
 
                                 <div>
                                     <label className="block text-xs font-medium text-stone-600 mb-1">
-                                        Costo ($)
+                                        Precio por unidad ($)
                                     </label>
                                     <input
                                         type="number"

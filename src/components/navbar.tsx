@@ -46,9 +46,17 @@ export const SidebarMobile = ({ activeTab, setActiveTab }: SidebarMobileProps) =
       ),
     },
     {
+      id: 'productos',
+      label: 'Batidos',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 3h12l-1.2 16.2A2 2 0 0114.8 21H9.2a2 2 0 01-2-1.8L6 3zm.6 6h10.8" />
+        </svg>
+      ),
+    },
+    {
       id: 'inventario',
       label: 'Inventario',
-      badge: 3,
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />

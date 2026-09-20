@@ -23,8 +23,38 @@ export interface Ingrediente {
 export interface Venta {
   id: string;
   producto: string;
+  producto_id: string | null;
   cantidad: number;
   precio_unitario: number;
   total: number;
   created_at: string;
+}
+
+export interface Producto {
+  id: string;
+  nombre: string;
+  precio: number;
+  created_at: string;
+}
+
+export interface Receta {
+  id: string;
+  producto_id: string;
+  ingrediente_id: string;
+  cantidad: number;
+}
+
+/** Producto con su receta y el nombre de cada ingrediente ya resuelto. */
+export interface ProductoConReceta extends Producto {
+  recetas: (Receta & { inventario: Pick<Ingrediente, 'id' | 'nombre' | 'stock'> | null })[];
+}
+
+export interface AdvertenciaStock {
+  ingrediente: string;
+  faltante: number;
+}
+
+export interface ResultadoVenta {
+  venta: Venta;
+  advertencias: AdvertenciaStock[];
 }
