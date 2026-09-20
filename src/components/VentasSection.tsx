@@ -1,52 +1,91 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase, type Venta } from '../lib/supabase';
 
-interface Sale {
-    id: string;
-    time: string;
-    items: string;
-    total: string;
-}
+const formatMoney = (amount: number) =>
+    `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const formatTime = (isoDate: string) =>
+    new Date(isoDate).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+
+const formatDate = (isoDate: string) =>
+    new Date(isoDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 
 export const VentasSection = () => {
-    const [sales, setSales] = useState<Sale[]>([
-        { id: '#1024', time: '12:45 PM', items: '2x Mango tropical, 1x Berry blast', total: '$26.50' },
-        { id: '#1023', time: '12:30 PM', items: '1x Green detox', total: '$11.00' },
-        { id: '#1022', time: '12:15 PM', items: '3x Piña colada', total: '$21.00' },
-    ]);
+    const [sales, setSales] = useState<Venta[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [productName, setProductName] = useState('');
     const [quantity, setQuantity] = useState('');
     const [price, setPrice] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleAddSale = (e: React.FormEvent) => {
+    useEffect(() => {
+        const loadSales = async () => {
+            const { data, error } = await supabase
+                .from('ventas')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            if (error) setError('No se pudieron cargar las ventas.');
+            else setSales(data);
+            setIsLoading(false);
+        };
+
+        loadSales();
+    }, []);
+
+    const handleAddSale = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!productName.trim() || !quantity || !price) return;
 
-        const qtyNum = Number(quantity);
-        const priceNum = Number(price);
-        const totalAmount = (qtyNum * priceNum).toFixed(2);
+        setIsSaving(true);
+        const { data, error } = await supabase
+            .from('ventas')
+            .insert({
+                producto: productName.trim(),
+                cantidad: Number(quantity),
+                precio_unitario: Number(price),
+            })
+            .select()
+            .single();
+        setIsSaving(false);
 
-        const currentTime = new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-        });
+        if (error) {
+            setError('No se pudo registrar la venta.');
+            return;
+        }
 
-        const newSale: Sale = {
-            id: `#${Math.floor(1000 + Math.random() * 9000)}`,
-            time: currentTime,
-            items: `${qtyNum}x ${productName.trim()}`,
-            total: `$${totalAmount}`,
-        };
-
-        setSales((prev) => [newSale, ...prev]);
+        setSales((prev) => [data, ...prev]);
         setProductName('');
         setQuantity('');
         setPrice('');
         setIsModalOpen(false);
     };
+
+    const handleDeleteSale = async (sale: Venta) => {
+        setSales((prev) => prev.filter((s) => s.id !== sale.id));
+
+        const { error } = await supabase.from('ventas').delete().eq('id', sale.id);
+
+        if (error) {
+            setError('No se pudo eliminar la venta.');
+            setSales((prev) =>
+                [sale, ...prev].sort((a, b) => b.created_at.localeCompare(a.created_at))
+            );
+        }
+    };
+
+    const totalDelDia = sales
+        .filter((s) => new Date(s.created_at).toDateString() === new Date().toDateString())
+        .reduce((acc, s) => acc + Number(s.total), 0);
 
     return (
         <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans text-stone-800">
@@ -57,39 +96,79 @@ export const VentasSection = () => {
                 transition={{ duration: 0.3 }}
                 className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 space-y-6"
             >
-                <div>
-                    <h2 className="text-xl font-bold text-stone-900">Ventas</h2>
-                    <p className="text-base text-stone-500">Registro detallado de lo que vendes pomposa</p>
+                <div className="flex items-end justify-between gap-3">
+                    <div>
+                        <h2 className="text-xl font-bold text-stone-900">Ventas</h2>
+                        <p className="text-base text-stone-500">Registro detallado de lo que vendes pomposa</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Hoy</p>
+                        <p className="font-bold text-[#1e6044]">{formatMoney(totalDelDia)}</p>
+                    </div>
                 </div>
+
+                {error && (
+                    <div className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-100 rounded-xl px-3.5 py-2.5">
+                        {error}
+                    </div>
+                )}
 
                 {/* Lista de ventas animada */}
-                <div className="space-y-3">
-                    <AnimatePresence initial={false}>
-                        {sales.map((sale) => (
-                            <motion.div
-                                key={sale.id}
-                                layout
-                                initial={{ opacity: 0, y: -15, scale: 0.98 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.25, ease: 'easeOut' }}
-                                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-stone-100 hover:bg-stone-50 transition-colors gap-3"
-                            >
-                                {/* Izquierda: ID y Hora */}
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <span className="font-bold text-stone-900 text-sm">{sale.id}</span>
-                                    <span className="text-[11px] text-stone-400">{sale.time}</span>
-                                </div>
+                {isLoading ? (
+                    <p className="text-center text-sm text-stone-400 py-8">Cargando ventas...</p>
+                ) : sales.length === 0 ? (
+                    <p className="text-center text-sm text-stone-400 py-8">
+                        Todavía no hay ventas registradas.
+                    </p>
+                ) : (
+                    <div className="space-y-3">
+                        <AnimatePresence initial={false}>
+                            {sales.map((sale) => (
+                                <motion.div
+                                    key={sale.id}
+                                    layout
+                                    initial={{ opacity: 0, y: -15, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-stone-100 hover:bg-stone-50 transition-colors gap-3"
+                                >
+                                    {/* Izquierda: Fecha y Hora */}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="font-bold text-stone-900 text-sm capitalize">
+                                            {formatDate(sale.created_at)}
+                                        </span>
+                                        <span className="text-[11px] text-stone-400">
+                                            {formatTime(sale.created_at)}
+                                        </span>
+                                    </div>
 
-                                {/* Derecha / Centro */}
-                                <div className="flex items-center justify-between gap-4 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-0 border-stone-100">
-                                    <p className="text-xs font-medium text-stone-700 truncate">{sale.items}</p>
-                                    <span className="font-bold text-stone-900 text-sm shrink-0">{sale.total}</span>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
+                                    {/* Derecha / Centro */}
+                                    <div className="flex items-center justify-between gap-4 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-0 border-stone-100">
+                                        <p className="text-xs font-medium text-stone-700 truncate">
+                                            {sale.cantidad}x {sale.producto}
+                                        </p>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className="font-bold text-stone-900 text-sm">
+                                                {formatMoney(Number(sale.total))}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteSale(sale)}
+                                                className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                aria-label={`Eliminar venta de ${sale.producto}`}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                )}
 
                 {/* Botón inferior */}
                 <div className="pt-2 flex justify-center border-t border-stone-100">
@@ -186,9 +265,10 @@ export const VentasSection = () => {
                                 <div className="flex items-center justify-center gap-3 pt-3">
                                     <button
                                         type="submit"
-                                        className="bg-[#1e6044] hover:bg-[#164833] text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
+                                        disabled={isSaving}
+                                        className="bg-[#1e6044] hover:bg-[#164833] text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
                                     >
-                                        Agregar venta
+                                        {isSaving ? 'Guardando...' : 'Agregar venta'}
                                     </button>
                                     <button
                                         type="button"
