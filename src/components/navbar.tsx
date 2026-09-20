@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TasaBcv } from './TasaBcv';
 
 interface MenuItem {
   id: string;
@@ -16,11 +17,6 @@ interface SidebarMobileProps {
 export const SidebarMobile = ({ activeTab, setActiveTab }: SidebarMobileProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const currentDate = new Date().toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'long',
-  });
 
   const menuItems: MenuItem[] = [
     {
@@ -105,10 +101,8 @@ export const SidebarMobile = ({ activeTab, setActiveTab }: SidebarMobileProps) =
           </div>
         </div>
 
-        {/* Fecha */}
-        <div className="w-auto px-3 h-8 rounded-full bg-white/20 text-white font-semibold text-xs flex items-center justify-center border border-white/30 capitalize">
-          {currentDate}
-        </div>
+        {/* Tasa oficial del dólar (BCV) */}
+        <TasaBcv />
       </header>
 
       {/* Overlay + Sidebar con AnimatePresence */}
