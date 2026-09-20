@@ -1,0 +1,30 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY. Copia .env.example como .env.local y rellena los valores.'
+  );
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { persistSession: false },
+});
+
+export interface Ingrediente {
+  id: string;
+  nombre: string;
+  stock: number;
+  created_at: string;
+}
+
+export interface Venta {
+  id: string;
+  producto: string;
+  cantidad: number;
+  precio_unitario: number;
+  total: number;
+  created_at: string;
+}
