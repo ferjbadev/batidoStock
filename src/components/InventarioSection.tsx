@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase, type Ingrediente } from '../lib/supabase';
 
+// Mismo umbral que usa la alerta de WhatsApp (public.configuracion.umbral_stock).
+const STOCK_BAJO = 1;
+
 export const InventarioSection = () => {
     const [ingredients, setIngredients] = useState<Ingrediente[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +143,17 @@ export const InventarioSection = () => {
                                             transition={{ duration: 0.25, ease: 'easeOut' }}
                                             className="hover:bg-stone-50/60 transition-colors"
                                         >
-                                            <td className="py-4 font-bold text-stone-900">{item.nombre}</td>
+                                            <td className="py-4 font-bold text-stone-900">
+                                                <span className="flex items-center gap-2">
+                                                    {item.stock <= STOCK_BAJO && (
+                                                        <span
+                                                            className="w-2 h-2 rounded-full bg-rose-500 shrink-0"
+                                                            title="Queda muy poco, toca comprar"
+                                                        />
+                                                    )}
+                                                    {item.nombre}
+                                                </span>
+                                            </td>
                                             <td className="py-4">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
@@ -152,7 +165,11 @@ export const InventarioSection = () => {
                                                     >
                                                         −
                                                     </button>
-                                                    <span className="font-semibold text-stone-800 min-w-[90px] text-center">
+                                                    <span
+                                                        className={`font-semibold min-w-[90px] text-center ${
+                                                            item.stock <= STOCK_BAJO ? 'text-rose-600' : 'text-stone-800'
+                                                        }`}
+                                                    >
                                                         {item.stock} {item.stock === 1 ? 'unidad' : 'unidades'}
                                                     </span>
                                                     <button
