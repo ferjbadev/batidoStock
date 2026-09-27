@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTasaBcv } from '../hooks/useTasaBcv';
 
 interface MenuItem {
   id: string;
@@ -18,15 +17,11 @@ export const SidebarMobile = ({ activeTab, setActiveTab }: SidebarMobileProps) =
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const tasaBcv = useTasaBcv();
-
-  const fechaTasa = tasaBcv?.actualizada
-    ? new Date(tasaBcv.actualizada).toLocaleDateString('es-VE', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      })
-    : null;
+  const fechaHoy = new Date().toLocaleDateString('es-VE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
   const menuItems: MenuItem[] = [
     {
@@ -119,20 +114,15 @@ export const SidebarMobile = ({ activeTab, setActiveTab }: SidebarMobileProps) =
           </div>
         </div>
 
-        {/* Tasa de cambio BCV */}
+        {/* Fecha actual */}
         <div
-          title={fechaTasa ? `Tasa oficial del BCV del ${fechaTasa}` : 'Consultando la tasa del BCV...'}
+          title="Fecha de hoy"
           className="w-auto px-3 h-8 rounded-full bg-white/20 text-white font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/30"
         >
-          <span>$1</span>
           <svg className="w-3.5 h-3.5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-3-3m3 3l-3 3M16 17H4m0 0l3 3m-3-3l3-3" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span>
-            {tasaBcv
-              ? `Bs. ${tasaBcv.valor.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              : 'Bs. --'}
-          </span>
+          <span className="capitalize">{fechaHoy}</span>
         </div>
       </header>
 
