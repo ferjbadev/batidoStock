@@ -105,9 +105,9 @@ export const ProductosSection = () => {
             nuevaCantidad <= 0
                 ? await supabase.from('recetas').delete().eq('id', receta.id)
                 : await supabase
-                      .from('recetas')
-                      .update({ cantidad: nuevaCantidad })
-                      .eq('id', receta.id);
+                    .from('recetas')
+                    .update({ cantidad: nuevaCantidad })
+                    .eq('id', receta.id);
 
         if (error) {
             setError('No se pudo actualizar la receta.');
@@ -126,11 +126,14 @@ export const ProductosSection = () => {
         setError(null);
 
         // Si el ingrediente no existe en el inventario (ej. "Leche"), se crea con stock 0.
-        let ingrediente = ingredientes.find(
+        const ingredienteExistente = ingredientes.find(
             (i) => i.nombre.trim().toLowerCase() === nombreIngrediente.toLowerCase()
         );
 
-        if (!ingrediente) {
+        let ingrediente: Ingrediente;
+        if (ingredienteExistente) {
+            ingrediente = ingredienteExistente;
+        } else {
             const { data, error: ingredienteError } = await supabase
                 .from('inventario')
                 .insert({ nombre: nombreIngrediente, stock: 0 })
@@ -150,14 +153,14 @@ export const ProductosSection = () => {
 
         const { error: recetaError } = recetaExistente
             ? await supabase
-                  .from('recetas')
-                  .update({ cantidad: recetaExistente.cantidad + cantidad })
-                  .eq('id', recetaExistente.id)
+                .from('recetas')
+                .update({ cantidad: recetaExistente.cantidad + cantidad })
+                .eq('id', recetaExistente.id)
             : await supabase.from('recetas').insert({
-                  producto_id: producto.id,
-                  ingrediente_id: ingrediente.id,
-                  cantidad,
-              });
+                producto_id: producto.id,
+                ingrediente_id: ingrediente.id,
+                cantidad,
+            });
 
         if (recetaError) {
             setError('No se pudo añadir el ingrediente a la receta.');
@@ -423,7 +426,7 @@ export const ProductosSection = () => {
                                     <label className="block text-xs font-medium text-stone-600">
                                         Esta Receta necesita...
                                     </label>
-                                   
+
                                     <div className="space-y-2 pt-1">
                                         {ingredientes.map((ingrediente) => (
                                             <div key={ingrediente.id} className="flex items-center justify-between gap-3">
