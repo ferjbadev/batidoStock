@@ -21,6 +21,11 @@ export const ProductosSection = () => {
     const [cantidades, setCantidades] = useState<Record<string, string>>({});
     const [isSaving, setIsSaving] = useState(false);
 
+    const [addingTo, setAddingTo] = useState<string | null>(null);
+    const [ingredienteInput, setIngredienteInput] = useState('');
+    const [cantidadInput, setCantidadInput] = useState('1');
+    const [isAddingIngrediente, setIsAddingIngrediente] = useState(false);
+
     const loadData = useCallback(async () => {
         const [productosRes, inventarioRes] = await Promise.all([
             supabase.from('productos').select(SELECT_PRODUCTOS).order('created_at'),
@@ -112,19 +117,59 @@ export const ProductosSection = () => {
         await loadData();
     };
 
-    const handleAddIngredienteAReceta = async (productoId: string, ingredienteId: string) => {
-        if (!ingredienteId) return;
+    const handleAddIngredienteAReceta = async (producto: ProductoConReceta) => {
+        const nombreIngrediente = ingredienteInput.trim();
+        const cantidad = Number(cantidadInput);
+        if (!nombreIngrediente || !(cantidad > 0)) return;
 
-        const { error } = await supabase
-            .from('recetas')
-            .insert({ producto_id: productoId, ingrediente_id: ingredienteId, cantidad: 1 });
+        setIsAddingIngrediente(true);
+        setError(null);
 
-        if (error) {
+        // Si el ingrediente no existe en el inventario (ej. "Leche"), se crea con stock 0.
+        let ingrediente = ingredientes.find(
+            (i) => i.nombre.trim().toLowerCase() === nombreIngrediente.toLowerCase()
+        );
+
+        if (!ingrediente) {
+            const { data, error: ingredienteError } = await supabase
+                .from('inventario')
+                .insert({ nombre: nombreIngrediente, stock: 0 })
+                .select()
+                .single();
+
+            if (ingredienteError || !data) {
+                setError('No se pudo crear el ingrediente en el inventario.');
+                setIsAddingIngrediente(false);
+                return;
+            }
+            ingrediente = data;
+        }
+
+        // Si ya estaba en la receta, se suma la cantidad en vez de duplicarlo.
+        const recetaExistente = producto.recetas.find((r) => r.ingrediente_id === ingrediente.id);
+
+        const { error: recetaError } = recetaExistente
+            ? await supabase
+                  .from('recetas')
+                  .update({ cantidad: recetaExistente.cantidad + cantidad })
+                  .eq('id', recetaExistente.id)
+            : await supabase.from('recetas').insert({
+                  producto_id: producto.id,
+                  ingrediente_id: ingrediente.id,
+                  cantidad,
+              });
+
+        if (recetaError) {
             setError('No se pudo añadir el ingrediente a la receta.');
+            setIsAddingIngrediente(false);
             return;
         }
 
         await loadData();
+        setIsAddingIngrediente(false);
+        setAddingTo(null);
+        setIngredienteInput('');
+        setCantidadInput('1');
     };
 
     return (
@@ -234,19 +279,66 @@ export const ProductosSection = () => {
                                             </ul>
                                         )}
 
-                                        {disponibles.length > 0 && (
-                                            <select
-                                                value=""
-                                                onChange={(e) => handleAddIngredienteAReceta(producto.id, e.target.value)}
-                                                className="w-full px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl text-stone-600 focus:outline-none focus:border-[#1e6044] cursor-pointer"
+                                        {addingTo === producto.id ? (
+                                            <form
+                                                onSubmit={(e) => {
+                                                    e.preventDefault();
+                                                    handleAddIngredienteAReceta(producto);
+                                                }}
+                                                className="flex items-center gap-2"
                                             >
-                                                <option value="">+ Añadir ingrediente a la receta</option>
-                                                {disponibles.map((ingrediente) => (
-                                                    <option key={ingrediente.id} value={ingrediente.id}>
-                                                        {ingrediente.nombre}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    autoFocus
+                                                    list={`ingredientes-disponibles-${producto.id}`}
+                                                    placeholder="Ingrediente (ej. Leche)"
+                                                    value={ingredienteInput}
+                                                    onChange={(e) => setIngredienteInput(e.target.value)}
+                                                    className="flex-1 min-w-0 px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-[#1e6044] text-stone-800 placeholder-stone-400"
+                                                />
+                                                <datalist id={`ingredientes-disponibles-${producto.id}`}>
+                                                    {disponibles.map((ingrediente) => (
+                                                        <option key={ingrediente.id} value={ingrediente.nombre} />
+                                                    ))}
+                                                </datalist>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    required
+                                                    value={cantidadInput}
+                                                    onChange={(e) => setCantidadInput(e.target.value)}
+                                                    className="w-16 px-2 py-1.5 text-xs text-center bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-[#1e6044] text-stone-800"
+                                                    aria-label="Cantidad que gasta por batido"
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    disabled={isAddingIngrediente}
+                                                    className="px-3 py-1.5 text-xs font-semibold text-white bg-[#1e6044] hover:bg-[#164833] rounded-xl transition-colors disabled:opacity-60 cursor-pointer shrink-0"
+                                                >
+                                                    {isAddingIngrediente ? '...' : 'Añadir'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAddingTo(null)}
+                                                    className="p-1.5 text-stone-400 hover:text-stone-600 rounded-lg transition-colors cursor-pointer shrink-0"
+                                                    aria-label="Cancelar"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </form>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setAddingTo(producto.id);
+                                                    setIngredienteInput('');
+                                                    setCantidadInput('1');
+                                                }}
+                                                className="w-full px-3 py-1.5 text-xs font-semibold text-[#1e6044] bg-[#eaf3de] hover:bg-[#d8e8c5] border border-[#d8e8c5] rounded-xl transition-colors cursor-pointer"
+                                            >
+                                                + Añadir ingrediente
+                                            </button>
                                         )}
                                     </motion.div>
                                 );
@@ -329,11 +421,9 @@ export const ProductosSection = () => {
 
                                 <div className="space-y-2">
                                     <label className="block text-xs font-medium text-stone-600">
-                                        Receta: cuánto gasta de cada ingrediente
+                                        Esta Receta necesita...
                                     </label>
-                                    <p className="text-[11px] text-stone-400">
-                                        Deja en 0 los que no lleva.
-                                    </p>
+                                   
                                     <div className="space-y-2 pt-1">
                                         {ingredientes.map((ingrediente) => (
                                             <div key={ingrediente.id} className="flex items-center justify-between gap-3">
